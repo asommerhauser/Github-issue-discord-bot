@@ -9,6 +9,7 @@ from utils.persistence import load_data
 
 intents = discord.Intents.default()
 intents.message_content = True  # Required to read messages for commands
+intents.members = True
 
 # Create the bot instance and remove the default help command
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
@@ -33,6 +34,8 @@ async def on_ready():
         print("Loaded 'github' cog.")
         await bot.load_extension("cogs.help")
         print("Loaded 'help' cog.")
+        await bot.load_extension("cogs.messenger")
+        print('Loaded messenger cog.')
     except Exception as e:
         print(f"Failed to load a cog: {e}")
         await bot.close()

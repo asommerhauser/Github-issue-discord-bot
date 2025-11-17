@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 
@@ -19,8 +20,31 @@ class MessengerCog(commands.Cog):
             await member.send(
                 "👋 Hey! Welcome to the server.\n\n"
                 "I'm the bot that helps with GitHub + notifications. "
-                "We’ll be adding more features soon, but for now I'm just saying hi 😌"
+                "Before we get started — what's your **GitHub username**?\n"
+                "Just reply to this DM with your username (no @ needed)."
             )
+
+            def check(message: discord.Message) -> bool:
+                return (
+                    message.author.id == member.id and isinstance(message.channel, discord.DMChannel)
+                )
+            
+            try:
+                reply: discord.Message = await self.bot.wait_for("message", check=check, timeout=300)
+            except asyncio.TimeoutError:
+                print(
+                    f"[MessengerCog] Timed out waiting for GitHub username from {member} ({member.id})"
+                )
+                return
+            
+            github_username = reply.content.strip()
+
+            await member.send(
+                f"Thanks! I got your username as `{github_username}`. "
+                "I'll use this in the future when we connect your GitHub activity."
+            )
+
+
         except discord.Forbidden:
             # They have DMs closed or blocked the bot – just ignore
             pass

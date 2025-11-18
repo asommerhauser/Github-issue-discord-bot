@@ -2,14 +2,18 @@ import asyncio
 import discord
 from discord.ext import commands
 from config import ONBOARDING_TIMEOUT_SECONDS
-
+from utils.persistence import (
+    get_onboarding_enabled,
+    set_onboarding_enabled,
+    save_data,
+)
 
 class MessengerCog(commands.Cog):
     """Cog responsible for messaging new members in DMs."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.onboarding_enabled = False
+        self.onboarding_enabled = get_onboarding_enabled()
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -108,12 +112,18 @@ class MessengerCog(commands.Cog):
 
         if mode in ("on", "enable", "enabled"):
             self.onboarding_enabled = True
+            set_onboarding_enabled(True)
+            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            
             await ctx.send(
                 ":white_check_mark: Onboarding has been **enabled**.\n"
                 "New members will receive DMs and may be kicked if they do not respond."
             )
         elif mode in ("off", "disable", "disabled"):
             self.onboarding_enabled = False
+            set_onboarding_enabled(False)
+            save_data(self.bot.watched_repos, self.bot.notified_issues)
+
             await ctx.send(
                 ":no_entry_sign: Onboarding has been **disabled**.\n"
                 "New members will *not* receive DMs or be kicked by this cog."

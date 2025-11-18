@@ -2,6 +2,19 @@ import json
 import os
 from config import DATA_FILE_PATH
 
+_onboarding_settings = {
+    "enabled": False
+}
+    
+def get_onboarding_enabled() -> bool:
+    """Return whether onboarding is enabled (global flag)."""
+    return _onboarding_settings.get("enabled", True)
+
+
+def set_onboarding_enabled(value: bool) -> None:
+    """Set whether onboarding is enabled and keep it in memory."""
+    _onboarding_settings["enabled"] = bool(value)
+
 def load_data():
     """Loads the watch list and notified issues from the JSON file."""
     watched_repos = {}
@@ -45,6 +58,11 @@ def load_data():
                              print("Migrated v2 data to include 'watch_type: issues' default.")
                 
                 notified_issues = set(data.get('notified_issues', []))
+                
+                onboarding_data = data.get('onboarding')
+                if isinstance(onboarding_data, dict) and "enabled" in onboarding_data:
+                    _onboarding_settings["enabled"] = bool(onboarding_data["enabled"])
+
             print(f"Loaded data from {DATA_FILE_PATH}")
             
             if data_was_migrated:
@@ -65,7 +83,8 @@ def save_data(watched_repos, notified_issues):
         with open(DATA_FILE_PATH, 'w') as f:
             data = {
                 'watched_repos': watched_repos,
-                'notified_issues': list(notified_issues)  
+                'notified_issues': list(notified_issues),
+                'onboarding': _onboarding_settings  
             }
             json.dump(data, f, indent=4)
         print(f"Saved data to {DATA_FILE_PATH}")

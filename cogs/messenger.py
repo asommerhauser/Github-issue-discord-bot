@@ -1,7 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from config import ONBOARDING_TIMEOUT_SECONDS
+from config import ONBOARDING_TIMEOUT_SECONDS, MAX_ONBOARDING_ATTEMPTS
 from utils.persistence import (
     get_onboarding_enabled,
     set_onboarding_enabled,
@@ -61,21 +61,56 @@ class MessengerCog(commands.Cog):
 
                 return
             
-            github_username = reply.content.strip()
-            github_cog = self.bot.get_cog("GitHubCog")
-            if github_cog is not None:
+            for attempt in range(1, MAX_ONBOARDING_ATTEMPTS + 1):
+                github_username = reply.content.strip()
+                github_cog = self.bot.get_cog("GitHubCog")
+
+                if github_cog is None:
+                    print("[MessengerCog] GitHubCog not loaded; cannot handle onboarding username.")
+                    return
+
                 try:
-                    await github_cog.handle_onboarding_username(member, reply.content)
+                    is_valid = await github_cog.handle_onboarding_username(member, github_username)
                 except Exception as e:
                     print(f"[MessengerCog] Error passing onboarding username to GitHubCog for {member}: {e}")
-            else:
-                print("[MessengerCog] GitHubCog not loaded; cannot handle onboarding username.")
-                
-            await member.send(
-                f"Thanks! I got your username as `{github_username}`. "
-                "I'll use this in the future when we connect your GitHub activity."
-            )
+                    is_valid = False
 
+                if is_valid:
+                    # SUCCESS — username valid + contributor
+                    await member.send(
+                        f":white_check_mark: Nice! `{github_username}` is a contributor in a watched repo.\n"
+                        "You're all set!"
+                    )
+                    return
+
+                # If invalid, check if we still have attempts left
+                if attempt < MAX_ONBOARDING_ATTEMPTS:
+                    await member.send(
+                        ":x: I couldn’t find that GitHub username as a contributor.\n"
+                        "Please double-check and send your GitHub username again."
+                    )
+
+                    # Wait for the next reply
+                    try:
+                        reply = await self.bot.wait_for(
+                            "message", check=check, timeout=ONBOARDING_TIMEOUT_SECONDS
+                        )
+                        continue
+                    except asyncio.TimeoutError:
+                        await member.send(
+                            ":hourglass: You didn’t respond in time.\n"
+                            "I have to remove you for now — feel free to rejoin anytime!"
+                        )
+                        await member.kick(reason="Failed onboarding: timeout during retries")
+                        return
+
+                # Last attempt failed
+                await member.send(
+                    ":no_entry: I still couldn’t verify your GitHub username after several tries.\n"
+                    "Please rejoin once you've been added to the repo as a collaborator."
+                )
+                await member.kick(reason="Failed onboarding: invalid GitHub username (3 attempts)")
+                return
 
         except discord.Forbidden:
             # They have DMs closed or blocked the bot – just ignore
@@ -114,7 +149,7 @@ class MessengerCog(commands.Cog):
             self.onboarding_enabled = True
             set_onboarding_enabled(True)
             save_data(self.bot.watched_repos, self.bot.notified_issues)
-            
+
             await ctx.send(
                 ":white_check_mark: Onboarding has been **enabled**.\n"
                 "New members will receive DMs and may be kicked if they do not respond."

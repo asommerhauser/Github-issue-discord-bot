@@ -4,7 +4,7 @@ import aiohttp
 import asyncio
 from datetime import datetime, timezone, timedelta
 from utils.persistence import save_data
-from config import CHECK_INTERVAL_MINUTES
+from config import CHECK_INTERVAL_MINUTES, get_github_headers
 
 class GitHubCog(commands.Cog):
     """Cog for handling all GitHub-related commands and tasks."""
@@ -12,7 +12,6 @@ class GitHubCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.check_issues_loop.start()
-        self._user_links: dict[int, str] = {}
 
     def cog_unload(self):
         """Called when the cog is unloaded."""
@@ -386,7 +385,6 @@ class GitHubCog(commands.Cog):
         
         print("GitHub check finished.")
 
-
     async def send_notification(self, channel, repo, issue, watched_labels, is_pr):
         """Formats and sends a single issue notification to a channel."""
         
@@ -444,25 +442,74 @@ class GitHubCog(commands.Cog):
         """Waits for the bot to be logged in before starting the loop."""
         await self.bot.wait_until_ready()
 
-    # ----------------------------------------
-    # Called by MessengerCog after onboarding
-    # ----------------------------------------
-    async def handle_onboarding_username(self, member: discord.Member, github_username: str):
+    async def is_collaborator_for_repo(self, github_username: str) -> bool:
+        """
+        Checks the list of repos to determine if the GitHub username exists as a collaborator
+        in ANY of the watched repos.
+        """
+
+        if not getattr(self.bot, "watched_repos", None):
+            print("[GitHubCog] No watched repos configured; cannot validate collaborators.")
+            return False
+        
+        github_username = github_username.lower()
+
+        session = getattr(self.bot, "http_session", None)
+        headers = get_github_headers()
+
+        async def check_repo(full_name: str) -> bool:
+            owner, repo = full_name.split("/", 1)
+            url = f"https://api.github.com/repos/{owner}/{repo}/collaborators/{github_username}"
+
+            async with session.get(url, headers=headers) as resp:
+                if resp.status == 204:
+                    print(f"[GitHubCog] {github_username} IS a collaborator on {full_name}")
+                    return True
+                elif resp.status == 404:
+                    return False
+                else:
+                    print(f"[GitHubCog] Failed to fetch collaborator status for {full_name} (status {resp.status})")
+                    return False
+
+        # Check each watched repo in turn
+        for full_name in self.bot.watched_repos.keys():
+            try:
+                if await check_repo(full_name):
+                    return True
+            except Exception as e:
+                print(f"[GitHubCog] Error while checking collaborators for {full_name}: {e}")
+
+        print(f"[GitHubCog] {github_username} is not a collaborator on any watched repo.")
+        return False
+
+
+async def handle_onboarding_username(self, member: discord.Member, github_username: str) -> bool:
         """
         Handle a GitHub username collected during onboarding.
 
-        This is the single entrypoint MessengerCog should call.
+        Returns:
+            True  -> user is a collaborator on at least one watched repo (and is linked)
+            False -> user is NOT a collaborator / invalid username
         """
         github_username = github_username.strip()
         if not github_username:
-            # Nothing to do if empty/whitespace
-            return
+            return False
 
-        self._user_links[member.id] = github_username
+        # Validate that this username is a collaborator on at least one watched repo
+        is_collab = await self.is_collaborator_for_repo(github_username)
+        if not is_collab:
+            print(
+                f"[GitHubCog] Onboarding failed: Discord user {member} ({member.id}) "
+                f"GitHub '{github_username}' not found as collaborator in any watched repo."
+            )
+            return False
 
-        # You can log this for debugging:
+        # Store the link on the bot so other cogs can use it
+        self.bot.user_links[member.id] = github_username
+
         print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
 
+        return True
 
 async def setup(bot):
     """Required setup function to load the cog."""

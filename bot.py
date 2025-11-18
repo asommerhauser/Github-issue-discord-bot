@@ -16,6 +16,7 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # These will hold the bot's state, loaded on startup
 bot.watched_repos = {}
+bot.user_links = {}
 bot.notified_issues = set()
 bot.http_session = None
 
@@ -35,7 +36,7 @@ async def on_ready():
         await bot.load_extension("cogs.help")
         print("Loaded 'help' cog.")
         await bot.load_extension("cogs.messenger")
-        print('Loaded messenger cog.')
+        print("Loaded 'messenger' cog.")
     except Exception as e:
         print(f"Failed to load a cog: {e}")
         await bot.close()

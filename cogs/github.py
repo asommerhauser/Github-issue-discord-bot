@@ -12,6 +12,7 @@ class GitHubCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.check_issues_loop.start()
+        self._user_links: dict[int, str] = {}
 
     def cog_unload(self):
         """Called when the cog is unloaded."""
@@ -214,7 +215,7 @@ class GitHubCog(commands.Cog):
                         # Format as relative time for Discord <t:TIMESTAMP:R>
                         time_str = f" (since <t:{int(time_dt.timestamp())}:R>)"
                     except:
-                        pass 
+                        pass    
                 
                 type_str = {
                     "issues": "Issues Only",
@@ -442,6 +443,25 @@ class GitHubCog(commands.Cog):
     async def before_check_loop(self):
         """Waits for the bot to be logged in before starting the loop."""
         await self.bot.wait_until_ready()
+
+    # ----------------------------------------
+    # Called by MessengerCog after onboarding
+    # ----------------------------------------
+    async def handle_onboarding_username(self, member: discord.Member, github_username: str):
+        """
+        Handle a GitHub username collected during onboarding.
+
+        This is the single entrypoint MessengerCog should call.
+        """
+        github_username = github_username.strip()
+        if not github_username:
+            # Nothing to do if empty/whitespace
+            return
+
+        self._user_links[member.id] = github_username
+
+        # You can log this for debugging:
+        print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
 
 
 async def setup(bot):

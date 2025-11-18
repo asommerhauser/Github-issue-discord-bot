@@ -58,7 +58,15 @@ class MessengerCog(commands.Cog):
                 return
             
             github_username = reply.content.strip()
-
+            github_cog = self.bot.get_cog("GitHubCog")
+            if github_cog is not None:
+                try:
+                    await github_cog.handle_onboarding_username(member, reply.content)
+                except Exception as e:
+                    print(f"[MessengerCog] Error passing onboarding username to GitHubCog for {member}: {e}")
+            else:
+                print("[MessengerCog] GitHubCog not loaded; cannot handle onboarding username.")
+                
             await member.send(
                 f"Thanks! I got your username as `{github_username}`. "
                 "I'll use this in the future when we connect your GitHub activity."

@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
+from config import ONBOARDING_TIMEOUT_SECONDS
 
 
 class MessengerCog(commands.Cog):
@@ -30,7 +31,7 @@ class MessengerCog(commands.Cog):
                 )
             
             try:
-                reply: discord.Message = await self.bot.wait_for("message", check=check, timeout=500)
+                reply: discord.Message = await self.bot.wait_for("message", check=check, timeout=ONBOARDING_TIMEOUT_SECONDS)
             except asyncio.TimeoutError:
                 # No reply from user - remove from server
                 try:

@@ -30,11 +30,26 @@ class MessengerCog(commands.Cog):
                 )
             
             try:
-                reply: discord.Message = await self.bot.wait_for("message", check=check, timeout=300)
+                reply: discord.Message = await self.bot.wait_for("message", check=check, timeout=500)
             except asyncio.TimeoutError:
-                print(
-                    f"[MessengerCog] Timed out waiting for GitHub username from {member} ({member.id})"
-                )
+                # No reply from user - remove from server
+                try:
+                    await member.send(
+                        "⏳ Hey! You didn’t respond with your GitHub username, "
+                        "so I have to remove you from the server for now.\n"
+                        "Feel free to rejoin anytime!"
+                    )
+                except discord.Forbidden:
+                    # They had DMs closed; still kick them
+                    pass
+
+                # Attempt to kick them
+                try:
+                    await member.kick(reason="Failed onboarding: no GitHub username provided.")
+                    print(f"[MessengerCog] Kicked {member} ({member.id}) for timeout.")
+                except Exception as e:
+                    print(f"[MessengerCog] Failed to kick {member} ({member.id}): {e}")
+
                 return
             
             github_username = reply.content.strip()

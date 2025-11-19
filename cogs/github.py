@@ -483,33 +483,39 @@ class GitHubCog(commands.Cog):
         return False
 
 
-async def handle_onboarding_username(self, member: discord.Member, github_username: str) -> bool:
-        """
-        Handle a GitHub username collected during onboarding.
+    async def handle_onboarding_username(self, member: discord.Member, github_username: str) -> bool:
+            """
+            Handle a GitHub username collected during onboarding.
 
-        Returns:
-            True  -> user is a collaborator on at least one watched repo (and is linked)
-            False -> user is NOT a collaborator / invalid username
-        """
-        github_username = github_username.strip()
-        if not github_username:
-            return False
+            Returns:
+                True  -> user is a collaborator on at least one watched repo (and is linked)
+                False -> user is NOT a collaborator / invalid username
+            """
+            github_username = github_username.strip()
 
-        # Validate that this username is a collaborator on at least one watched repo
-        is_collab = await self.is_collaborator_for_repo(github_username)
-        if not is_collab:
             print(
-                f"[GitHubCog] Onboarding failed: Discord user {member} ({member.id}) "
-                f"GitHub '{github_username}' not found as collaborator in any watched repo."
+                f"[Onboarding DEBUG] Discord user {member} ({member.id}) "
+                f"submitted GitHub username: '{github_username}'"
             )
-            return False
 
-        # Store the link on the bot so other cogs can use it
-        self.bot.user_links[member.id] = github_username
+            if not github_username:
+                return False
 
-        print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
+            # Validate that this username is a collaborator on at least one watched repo
+            is_collab = await self.is_collaborator_for_repo(github_username)
+            if not is_collab:
+                print(
+                    f"[GitHubCog] Onboarding failed: Discord user {member} ({member.id}) "
+                    f"GitHub '{github_username}' not found as collaborator in any watched repo."
+                )
+                return False
 
-        return True
+            # Store the link on the bot so other cogs can use it
+            self.bot.user_links[member.id] = github_username
+
+            print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
+
+            return True
 
 async def setup(bot):
     """Required setup function to load the cog."""

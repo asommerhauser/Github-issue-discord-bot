@@ -123,7 +123,7 @@ class GitHubCog(commands.Cog):
                 "watch_type": watch_type
             }
             
-            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
             
             
             type_str = {
@@ -164,7 +164,7 @@ class GitHubCog(commands.Cog):
         
         if repo_name in self.bot.watched_repos:
             del self.bot.watched_repos[repo_name]
-            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
             await ctx.send(f":x: Stopped watching `{repo_name}`.")
         else:
             await ctx.send(f":grey_question: I am not currently watching `{repo_name}`.")
@@ -381,7 +381,7 @@ class GitHubCog(commands.Cog):
         
         # Only save if we actually need to
         if data_was_modified:
-            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
         
         print("GitHub check finished.")
 

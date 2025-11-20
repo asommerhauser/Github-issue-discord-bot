@@ -19,6 +19,7 @@ def load_data():
     """Loads the watch list and notified issues from the JSON file."""
     watched_repos = {}
     notified_issues = set()
+    user_links = {}
     
     if os.path.exists(DATA_FILE_PATH):
         try:
@@ -27,6 +28,7 @@ def load_data():
                 
                 raw_watched_repos = data.get('watched_repos', {})
                 migrated_watched_repos = {}
+                migrated_user_links = {}
                 data_was_migrated = False
 
                 if raw_watched_repos:
@@ -63,28 +65,36 @@ def load_data():
                 if isinstance(onboarding_data, dict) and "enabled" in onboarding_data:
                     _onboarding_settings["enabled"] = bool(onboarding_data["enabled"])
 
+                raw_user_links = data.get('user_links', {})
+                if isinstance(raw_user_links, dict):
+                    user_links = {int(k): v for k, v in raw_user_links.items()}
+                else:
+                    user_links = {}
+
             print(f"Loaded data from {DATA_FILE_PATH}")
             
             if data_was_migrated:
-                save_data(watched_repos, notified_issues)
+                save_data(watched_repos, notified_issues, user_links)
 
         except Exception as e:
             print(f"Error reading or migrating {DATA_FILE_PATH}: {e}. Starting with empty data.")
             watched_repos = {}
             notified_issues = set()
+            user_links = {}
     else:
         print(f"{DATA_FILE_PATH} not found. Starting with empty data.")
         
-    return watched_repos, notified_issues
+    return watched_repos, notified_issues, user_links
 
-def save_data(watched_repos, notified_issues):
+def save_data(watched_repos, notified_issues, user_links):
     """Saves the current state to the JSON file."""
     try:
         with open(DATA_FILE_PATH, 'w') as f:
             data = {
                 'watched_repos': watched_repos,
                 'notified_issues': list(notified_issues),
-                'onboarding': _onboarding_settings  
+                'onboarding': _onboarding_settings,
+                'user_links': user_links
             }
             json.dump(data, f, indent=4)
         print(f"Saved data to {DATA_FILE_PATH}")

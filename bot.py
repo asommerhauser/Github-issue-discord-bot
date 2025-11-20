@@ -26,7 +26,7 @@ async def on_ready():
     """Called when the bot successfully logs in."""
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     
-    bot.watched_repos, bot.notified_issues = load_data()
+    bot.watched_repos, bot.notified_issues, bot.user_links = load_data()
     
     bot.http_session = aiohttp.ClientSession(headers=get_github_headers())
     

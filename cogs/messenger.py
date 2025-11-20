@@ -70,10 +70,10 @@ class MessengerCog(commands.Cog):
                     return
 
                 try:
-                    is_valid = await github_cog.handle_onboarding_username(member, github_username)
+                    is_valid, reason = await github_cog.handle_onboarding_username(member, github_username)
                 except Exception as e:
                     print(f"[MessengerCog] Error passing onboarding username to GitHubCog for {member}: {e}")
-                    is_valid = False
+                    is_valid, reason = False, "error"
 
                 if is_valid:
                     # SUCCESS — username valid + contributor
@@ -83,7 +83,22 @@ class MessengerCog(commands.Cog):
                     )
                     return
 
-                # If invalid, check if we still have attempts left
+                # Special case: GitHub account is already linked to another Discord user
+                if reason == "already_linked":
+                    await member.send(
+                        ":no_entry: That GitHub account is **already linked** to another Discord user in this server.\n"
+                        "If you think this is a mistake, please contact a server admin."
+                    )
+                    try:
+                        await member.kick(
+                            reason="Failed onboarding: GitHub account already linked to another Discord user."
+                        )
+                        print(f"[MessengerCog] Kicked {member} ({member.id}) - GitHub already linked.")
+                    except Exception as e:
+                        print(f"[MessengerCog] Failed to kick {member} ({member.id}) on already_linked: {e}")
+                    return
+
+                # For all other failures, fall through to the normal retry logic below
                 if attempt < MAX_ONBOARDING_ATTEMPTS:
                     await member.send(
                         ":x: I couldn’t find that GitHub username as a contributor.\n"

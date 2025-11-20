@@ -538,6 +538,7 @@ class GitHubCog(commands.Cog):
 
             # Store the link on the bot so other cogs can use it
             self.bot.user_links[member.id] = github_username
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
 
             print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
 

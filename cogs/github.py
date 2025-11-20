@@ -178,6 +178,7 @@ class GitHubCog(commands.Cog):
         else:
             await ctx.send(f":x: An error occurred: {error}")
             raise error 
+        
     @commands.command(name='list', 
                       help='Show all repositories being watched in this server.')
     async def list_watched(self, ctx):
@@ -234,6 +235,31 @@ class GitHubCog(commands.Cog):
         embed.description = description
         await ctx.send(embed=embed)
 
+    @commands.command(name='links',
+                    help='Show all Discord → GitHub account links.')
+    async def list_links(self, ctx):
+        """Lists all Discord users linked to GitHub usernames."""
+        user_links = getattr(self.bot, "user_links", {})
+
+        if not user_links:
+            await ctx.send("There are no linked accounts.")
+            return
+
+        lines = []
+        for discord_id, github_username in user_links.items():
+            member = ctx.guild.get_member(discord_id)
+            if member:
+                lines.append(f"- {member.mention} → `{github_username}`")
+            else:
+                lines.append(f"- <@{discord_id}> → `{github_username}`")
+
+        await ctx.send("**Linked Accounts:**\n" + "\n".join(lines))
+
+    @list_links.error
+    async def list_links_error(self, ctx, error):
+        """Error handler for the !links command."""
+        await ctx.send(f":x: An error occurred: {error}")
+        raise error
     
     @tasks.loop(minutes=CHECK_INTERVAL_MINUTES)
     async def check_issues_loop(self):

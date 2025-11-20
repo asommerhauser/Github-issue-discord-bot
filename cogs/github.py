@@ -261,6 +261,91 @@ class GitHubCog(commands.Cog):
         await ctx.send(f":x: An error occurred: {error}")
         raise error
     
+    @commands.command(
+        name='unlink',
+        help=(
+            'Unlink a Discord user from their GitHub account.\n'
+            'Usage:\n'
+            '  `!unlink @user`\n'
+            '  `!unlink github_username`'
+        )
+    )
+    async def unlink(self, ctx, identifier: str):
+        """Unlinks a Discord member or GitHub username from the link table."""
+        user_links = getattr(self.bot, "user_links", {})
+
+        if not user_links:
+            await ctx.send(":grey_question: There are no linked accounts.")
+            return
+
+        original_identifier = identifier.strip()
+
+        # Case 1: Mention
+        discord_id = None
+
+        if identifier.startswith("<@") and identifier.endswith(">"):
+            inner = identifier[2:-1]
+            if inner.startswith("!"):
+                inner = inner[1:]
+            if inner.isdigit():
+                discord_id = int(inner)
+
+        # If a mention was provided:
+        if discord_id is not None:
+            if discord_id not in user_links:
+                await ctx.send(
+                    f":grey_question: {identifier} is not linked to any GitHub account."
+                )
+                return
+
+            github_username = user_links.pop(discord_id)
+            self.bot.user_links = user_links
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
+
+            member = ctx.guild.get_member(discord_id)
+            target = member.mention if member else identifier
+
+            await ctx.send(
+                f":white_check_mark: Unlinked {target} from GitHub account `{github_username}`."
+            )
+            return
+
+        # Case 2: GitHub username
+        match_id = None
+        for d_id, gh_name in user_links.items():
+            if gh_name.lower() == identifier.lower():
+                match_id = d_id
+                break
+
+        if match_id is None:
+            await ctx.send(
+                f":grey_question: No link found for `{original_identifier}`."
+            )
+            return
+
+        github_username = user_links.pop(match_id)
+        self.bot.user_links = user_links
+        save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
+
+        member = ctx.guild.get_member(match_id)
+        target = member.mention if member else f"<@{match_id}>"
+
+        await ctx.send(
+            f":white_check_mark: Unlinked {target} from GitHub account `{github_username}`."
+        )
+
+    @unlink.error
+    async def unlink_error(self, ctx, error):
+        """Error handler for the !unlink command."""
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                ":warning: You forgot to specify a mention or GitHub username!\n"
+                "Usage: `!unlink @user` or `!unlink github_username`"
+            )
+        else:
+            await ctx.send(f":x: An error occurred: {error}")
+            raise error
+    
     @tasks.loop(minutes=CHECK_INTERVAL_MINUTES)
     async def check_issues_loop(self):
         """The main background loop that checks GitHub for new issues."""

@@ -4,7 +4,7 @@ import aiohttp
 import asyncio
 from datetime import datetime, timezone, timedelta
 from utils.persistence import save_data
-from config import CHECK_INTERVAL_MINUTES, get_github_headers
+from config import CHECK_INTERVAL_MINUTES, get_github_headers, GITHUB_COLLAB_ROLE_ID
 
 class GitHubCog(commands.Cog):
     """Cog for handling all GitHub-related commands and tasks."""
@@ -260,6 +260,85 @@ class GitHubCog(commands.Cog):
         """Error handler for the !links command."""
         await ctx.send(f":x: An error occurred: {error}")
         raise error
+    
+    @commands.command(
+        name='link',
+        help=(
+            'Link a Discord user to a GitHub account.\n'
+            'Usage:\n'
+            '  `!link github_username` (link yourself)\n'
+            '  `!link @user github_username` (link another member)'
+        )
+    )
+    async def link(self, ctx, identifier: str, github_username: str = None):
+        """Links a Discord member to a GitHub username."""
+        # Case 1: `!link github_username`  -> link the command author
+        if github_username is None:
+            target_member = ctx.author
+            github_username = identifier.strip()
+        else:
+            # Case 2: `!link @user github_username`
+            raw = identifier.strip()
+            discord_id = None
+
+            if raw.startswith("<@") and raw.endswith(">"):
+                inner = raw[2:-1]
+                if inner.startswith("!"):
+                    inner = inner[1:]
+                if inner.isdigit():
+                    discord_id = int(inner)
+            elif raw.isdigit():
+                discord_id = int(raw)
+
+            target_member = ctx.guild.get_member(discord_id) if discord_id is not None else None
+
+            if target_member is None:
+                await ctx.send(
+                    ":x: Could not resolve the Discord user.\n"
+                    "Use `!link github_username` to link yourself or "
+                    "`!link @user github_username` to link another member."
+                )
+                return
+
+        success, reason = await self.handle_onboarding_username(target_member, github_username)
+
+        if success:
+            await ctx.send(
+                f":white_check_mark: Linked {target_member.mention} to GitHub account `{github_username}`."
+            )
+            return
+
+        # Map failure reasons from handle_onboarding_username to user-friendly messages
+        if reason == "already_linked":
+            await ctx.send(
+                f":warning: GitHub account `{github_username}` is already linked to a different Discord user."
+            )
+        elif reason == "not_collaborator":
+            await ctx.send(
+                ":warning: That GitHub username is not a collaborator on any watched repository, "
+                "so it cannot be linked."
+            )
+        elif reason == "empty":
+            await ctx.send(
+                ":warning: You need to provide a GitHub username to link.\n"
+                "Usage: `!link github_username` or `!link @user github_username`"
+            )
+        else:
+            await ctx.send(
+                ":x: An unexpected error occurred while trying to link that account."
+            )
+
+    @link.error
+    async def link_error(self, ctx, error):
+        """Error handler for the !link command."""
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                ":warning: You forgot the arguments!\n"
+                "Usage: `!link github_username` or `!link @user github_username`"
+            )
+        else:
+            await ctx.send(f":x: An error occurred: {error}")
+            raise error
     
     @commands.command(
         name='unlink',
@@ -684,6 +763,28 @@ class GitHubCog(commands.Cog):
         save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
 
         print(f"[GitHubCog] Linked Discord user {member} ({member.id}) to GitHub '{github_username}'")
+
+        # NEW: Assign collaborator role if configured
+        try:
+            guild = member.guild
+            if guild and GITHUB_COLLAB_ROLE_ID:
+                role = guild.get_role(GITHUB_COLLAB_ROLE_ID)
+                if role and role not in member.roles:
+                    await member.add_roles(role, reason="GitHub collaborator linked")
+                    print(
+                        f"[GitHubCog] Assigned role '{role.name}' "
+                        f"to {member} ({member.id}) after linking GitHub '{github_username}'"
+                    )
+                else:
+                    if not role:
+                        print(f"[GitHubCog] Role with ID {GITHUB_COLLAB_ROLE_ID} not found in guild {guild.id}")
+        except discord.Forbidden:
+            print(
+                f"[GitHubCog] Missing permissions to add role {GITHUB_COLLAB_ROLE_ID} "
+                f"to {member} ({member.id})"
+            )
+        except Exception as e:
+            print(f"[GitHubCog] Error assigning collaborator role: {e}")
 
         return True, "ok"
 

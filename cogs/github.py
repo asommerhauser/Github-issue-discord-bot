@@ -513,9 +513,17 @@ class GitHubCog(commands.Cog):
         
         # Add repo name as a field so it's clear
         embed.add_field(name="Repository", value=f"`{repo}`", inline=False)
-        
-        item_type_field_name = "PR Number" if is_pr else "Issue Number"
-        embed.add_field(name=item_type_field_name, value=f"#{issue['number']}", inline=True)
+
+        # NEW: Add issue/PR description under the repo
+        body_text = issue.get("body") or "*No description provided*"
+        if len(body_text) > 500:  # avoid huge embeds
+            body_text = body_text[:500] + "…"
+
+        embed.add_field(
+            name="Description",
+            value=body_text,
+            inline=False
+        )
         
         embed.add_field(name="Created By", value=f"[{issue['user']['login']}]({issue['user']['html_url']})", inline=True)
         
@@ -539,8 +547,38 @@ class GitHubCog(commands.Cog):
             # If we're watching ALL issues, just list the labels without highlighting
             formatted_labels = [f"`{name}`" for name in issue_labels]
             embed.add_field(name="Labels", value=', '.join(formatted_labels), inline=False)
-            
         
+        # Create Discord mentions for assigned github accounts
+        user_links = getattr(self.bot, "user_links", {}) or {}
+
+        # GitHub provides 'assignees' (list) and sometimes 'assignee' (single)
+        assignees = issue.get('assignees') or []
+        single_assignee = issue.get('assignee')
+        if single_assignee and single_assignee not in assignees:
+            assignees.append(single_assignee)
+
+        mentions = []
+
+        if assignees and user_links:
+            # user_links is {discord_id: github_username}
+            for assignee in assignees:
+                login = assignee.get('login')
+                if not login:
+                    continue
+
+                for discord_id, gh_username in user_links.items():
+                    if gh_username.lower() == login.lower():
+                        mentions.append(f"<@{discord_id}>")
+                        break  # one Discord account per GitHub username
+
+        # Add assigned Discord mentions directly into the embed
+        if mentions:
+            embed.add_field(
+                name="Assigned",
+                value=" ".join(mentions),
+                inline=True
+            )
+
         try:
             await channel.send(embed=embed)
         except discord.Forbidden:

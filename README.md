@@ -85,6 +85,38 @@ While optional, providing a GitHub token is highly recommended:
 - **With token**: Rate limited to 5000 requests per hour
 - Get a token at: https://github.com/settings/tokens
 
+## Github Linking & Onboarding (Optional)
+
+This bot includes an optional **GitHub-verification onboarding system**. When enabled, every new member must verify their GitHub username through DM before staying in the server.
+
+### How It Works
+- When a new user joins, the bot DMs them asking for their **GitHub username**.
+- The username must belong to a **collaborator on any currently watched repository**.
+- If valid:
+  - The user is linked to that GitHub account
+  - (Optional) They are assigned the configured *GitHub Collaborator* role
+- If invalid, already linked elsewhere, or they don’t respond:
+  - The bot **kicks** them from the server after the configured timeout/attempts.
+
+### Enabling / Disabling Onboarding
+Admins can toggle onboarding at any time:
+
+- !onboarding on
+- !onboarding off
+- !onboarding
+
+### Commands for manual linking
+
+- !link [github_username]
+- !link @user [github_username]
+- !links
+
+### Required Config Values
+
+ONBOARDING_TIMEOUT_SECONDS = 60
+MAX_ONBOARDING_ATTEMPTS = 3
+GITHUB_COLLAB_ROLE_ID = 123456789012345678
+
 ## Project Structure
 
 ```

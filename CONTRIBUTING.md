@@ -1,0 +1,1 @@
+I was looking for a Discord bot to help me communicate Github issues and I found this one. I am likely not gonna pull requrest this because I made a huge change, and it's only made to do exactly the one thing I need it to do at the moment. If anyone wants to help out to make it polished the issues in here all apply to the account-linking branch.

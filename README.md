@@ -101,21 +101,27 @@ This bot includes an optional **GitHub-verification onboarding system**. When en
 ### Enabling / Disabling Onboarding
 Admins can toggle onboarding at any time:
 
-- !onboarding on
-- !onboarding off
-- !onboarding
+```
+!onboarding on
+!onboarding off
+!onboarding
+```
 
 ### Commands for manual linking
 
-- !link [github_username]
-- !link @user [github_username]
-- !links
+```
+!link [github_username]
+!link @user [github_username]
+!links
+```
 
 ### Required Config Values
 
+```
 ONBOARDING_TIMEOUT_SECONDS = 60
 MAX_ONBOARDING_ATTEMPTS = 3
 GITHUB_COLLAB_ROLE_ID = 123456789012345678
+```
 
 ## Project Structure
 

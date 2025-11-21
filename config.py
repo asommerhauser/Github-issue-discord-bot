@@ -12,7 +12,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 CHECK_INTERVAL_MINUTES = 1
 ONBOARDING_TIMEOUT_SECONDS = 500
 MAX_ONBOARDING_ATTEMPTS = 3
-GITHUB_COLLAB_ROLE_ID = 123456789012345678 # < -- Replace this with the discord role ID from your server
+GITHUB_COLLAB_ROLE_ID = 1441225680804253826 # < -- Replace this with the discord role ID from your server
 
 DATA_FILE_PATH = os.environ.get("DATA_FILE_PATH", "bot_data.json")
 

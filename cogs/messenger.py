@@ -164,7 +164,7 @@ class MessengerCog(commands.Cog):
         if mode in ("on", "enable", "enabled"):
             self.onboarding_enabled = True
             set_onboarding_enabled(True)
-            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
 
             await ctx.send(
                 ":white_check_mark: Onboarding has been **enabled**.\n"
@@ -173,7 +173,7 @@ class MessengerCog(commands.Cog):
         elif mode in ("off", "disable", "disabled"):
             self.onboarding_enabled = False
             set_onboarding_enabled(False)
-            save_data(self.bot.watched_repos, self.bot.notified_issues)
+            save_data(self.bot.watched_repos, self.bot.notified_issues, self.bot.user_links)
 
             await ctx.send(
                 ":no_entry_sign: Onboarding has been **disabled**.\n"

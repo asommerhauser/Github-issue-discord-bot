@@ -1,5 +1,6 @@
 import asyncio
 import discord
+from typing import Optional
 from discord.ext import commands
 from config import ONBOARDING_TIMEOUT_SECONDS, MAX_ONBOARDING_ATTEMPTS
 from utils.persistence import (
@@ -150,7 +151,7 @@ class MessengerCog(commands.Cog):
     )
     @commands.has_permissions(administrator=True)
     @commands.guild_only()
-    async def onboarding(self, ctx: commands.Context, mode: str | None = None):
+    async def onboarding(self, ctx: commands.Context, mode: Optional[str] = None):
         """Toggles whether new members get DM onboarding + potential kick."""
         # No argument: show current status
         if mode is None:

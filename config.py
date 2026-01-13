@@ -12,7 +12,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 CHECK_INTERVAL_MINUTES = 20
 ONBOARDING_TIMEOUT_SECONDS = 500
 MAX_ONBOARDING_ATTEMPTS = 3
-GITHUB_COLLAB_ROLE_ID = 1448850218664853586 # < -- Replace this with the discord role ID from your server
+GITHUB_COLLAB_ROLE_ID = 1448828857984614481 # < -- Replace this with the discord role ID from your server
 
 DATA_FILE_PATH = os.environ.get("DATA_FILE_PATH", "bot_data.json")
 
@@ -28,5 +28,3 @@ def get_github_headers():
     else:
         print("Warning: No GitHub Token provided. You will be rate-limited (60 req/hr).")
     return headers
-
-
